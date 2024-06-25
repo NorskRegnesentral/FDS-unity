@@ -7,11 +7,21 @@ using UnityEngine.UIElements;
 public class FireController : MonoBehaviour
 {
     public string filePath = "Assets\\Resource\\Example_case_hrr.csv"; // Path to your CSV file (can be given in inspector)
-    public GameObject fireObject;  // Assign your fire prefab in the inspector
-    private List<float> hrrData = new List<float>();
+
+
+    public ParticleSystem fireParticleSystem; //Assign your fire prefab in the inspector
+    public ParticleSystem smokeParticleSystem; //Assign your smoke prefab in the inspector
+
     private List<float> timeData = new List<float>();
+    private List<float> hrrData = new List<float>();
+    private List<float> qRads = new List<float>();
+    private List<float> qTotals = new List<float>();
+    private List<float> mlrAirs = new List<float>();
+    private List<float> mlrProducts = new List<float>();
+
+    private int currentTimeStep = 0;
     private float timeElapsed = 0f;
-    private int currentIndex = 0;
+    private float updateInterval = 3f; // Interval in seconds
 
     void Start()
     {
@@ -22,19 +32,38 @@ public class FireController : MonoBehaviour
 
     void Update()
     {
-        if (currentIndex < hrrData.Count)
-        {
-            timeElapsed += Time.deltaTime;
+       
+        timeElapsed += Time.deltaTime;
             // Assuming each row represents data for specific time
-            if (timeElapsed >= timeData[currentIndex])
-            {
-                float hrrValue = hrrData[currentIndex];
-                Debug.Log($"Inside if test, {hrrValue}");
-                AdjustFireIntensity(hrrValue);
-                Debug.Log("Inside if test - function called");
-                currentIndex++;
-            }
+        if (timeElapsed >= updateInterval && currentTimeStep < timeData.Count)
+        {
+            float hrr = hrrData[currentTimeStep];
+            float qRad = qRads[currentTimeStep];
+            float qTotal = qTotals[currentTimeStep];
+            float mlrAir = mlrAirs[currentTimeStep];
+            float mlrProduct = mlrProducts[currentTimeStep];
+
+
+            // Map HRR to emission rate
+            var fireEmission = fireParticleSystem.emission;
+            fireEmission.rateOverTime = hrr * 10f; // Adjust multiplier as needed
+
+            // Map Q_RADI to color and intensity
+            var fireMain = fireParticleSystem.main;
+            fireMain.startColor = new Color(1.0f, qRad / 500f, 0.0f); // Adjust color mapping
+
+            // Map Q_TOTAL to particle size and lifetime
+            fireMain.startSize = (qTotal + 100f)/10; // Adjust size mapping
+            fireMain.startLifetime =( qTotal * 200f)/20; // Adjust lifetime mapping
+
+            // Map MLR_AIR and MLR_PRODUCTS to smoke emission
+            var smokeEmission = smokeParticleSystem.emission;
+            smokeEmission.rateOverTime = (mlrAir + mlrProduct) * 10f; // Adjust multiplier as needed
+
+            currentTimeStep++;
+            timeElapsed = 0f; // Reset the timer
         }
+        //}
     }
 
     void ReadCSV()
@@ -62,11 +91,20 @@ public class FireController : MonoBehaviour
             string[] values = line.Split(',');
 
             if (float.TryParse(values[0], NumberStyles.Float, CultureInfo.InvariantCulture, out float timeValue) &&
-                float.TryParse(values[1], NumberStyles.Float, CultureInfo.InvariantCulture, out float hrrValue))
+                float.TryParse(values[1], NumberStyles.Float, CultureInfo.InvariantCulture, out float hrrValue) &&
+                float.TryParse(values[2], NumberStyles.Float, CultureInfo.InvariantCulture, out float qRadsValue) &&
+                float.TryParse(values[9], NumberStyles.Float, CultureInfo.InvariantCulture, out float qTotalValue) &&
+                float.TryParse(values[11], NumberStyles.Float, CultureInfo.InvariantCulture, out float mlrAirValue) &&
+                float.TryParse(values[12], NumberStyles.Float, CultureInfo.InvariantCulture, out float mlrProductsValue))
             {
                 timeData.Add(timeValue);
                 hrrData.Add(hrrValue);
-                Debug.Log($"Parsed values: Time = {timeValue}, HRR = {hrrValue}");
+                qRads.Add(qRadsValue);
+                qTotals.Add(qTotalValue);
+                mlrAirs.Add(mlrAirValue);
+                mlrProducts.Add(mlrProductsValue);
+
+                Debug.Log($"Parsed values: Time = {timeValue}, HRR = {hrrValue}, QRads = {qRadsValue}, QTotals = {qTotalValue}, mlrAir = {mlrAirValue}, mlrProducts = {mlrProductsValue}");
             }
             else
             {
@@ -77,7 +115,7 @@ public class FireController : MonoBehaviour
 
         Debug.Log("Done reading file 1");
 
-        //list the timeData 
+
         foreach (var tm in timeData)
         {
             Debug.Log("Time value is:" + tm);
@@ -85,29 +123,5 @@ public class FireController : MonoBehaviour
     }
 
 
-    void AdjustFireIntensity(float hrrValue)
-    {
-        // Example: Adjust fire intensity based on HRR value
-        // This is where you'll integrate with the fire asset
-        // Assuming the fire prefab has a ParticleSystem component
-        Debug.Log($"Ajust fire intensity function, {hrrValue}");
-        ParticleSystem fireParticleSystem = fireObject.GetComponent<ParticleSystem>();
-        if (fireParticleSystem != null)
-        {
-            Debug.Log($"object exists");
-            var main = fireParticleSystem.main;
-            main.startSize = Mathf.Lerp(0.1f, 1.0f, hrrValue/1000.0f); // Adjust as needed
-            main.startLifetime = Mathf.Lerp(0.5f, 2.0f, hrrValue/1000.0f); // Adjust as needed
 
-            Debug.Log($"HRR Value: {hrrValue} ");
-            Debug.Log($"Start Size: {main.startSize.constant}");
-            Debug.Log($"Start Lifetime: {main.startLifetime.constant}");
-
-        }
-        else
-        {
-            Debug.Log($"object doesnt exists");
-
-        }
-    }
 }
