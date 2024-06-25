@@ -31,8 +31,8 @@ public class FireController : MonoBehaviour
 
     void Start()
     {
-        fireParticleSystem.Play();
-        smokeParticleSystem.Play();
+        fireParticleSystem.Stop();
+        smokeParticleSystem.Stop();
 
         ReadCSV();
         ConfigureParticleSystems();
