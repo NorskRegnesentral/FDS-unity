@@ -12,7 +12,8 @@ public class FireController : MonoBehaviour
 
     public ParticleSystem fireParticleSystem; //Assign your fire prefab in the inspector
     public ParticleSystem smokeParticleSystem; //Assign your smoke prefab in the inspector
-
+    public ParticleSystem whitesmokeParticle;
+    public ParticleSystem smokeColumnSystem;
 
     private List<float> timeData = new List<float>();
     private List<float> hrrData = new List<float>();
@@ -23,77 +24,107 @@ public class FireController : MonoBehaviour
 
     private int currentTimeStep = 0;
     private float timeElapsed = 0f;
-    private float updateInterval = 3f; // Interval in seconds
+    public float updateInterval = 0.5f; // Interval in seconds
     private bool isSimulationRunning = false;
+
+    private float loopDuration;
+    private float loopTimer;
+    private bool isLooping;
+    private float starttime;
+    private float stoptime;
 
     private List<ParticleSystem> fireParticleSytems = new List<ParticleSystem>();
     private List<ParticleSystem> smokeParticleSystems = new List<ParticleSystem>();
-
+    
+    // Start is called before the first frame update
     void Start()
     {
         fireParticleSystem.Stop();
         smokeParticleSystem.Stop();
+        whitesmokeParticle.Stop();
+        smokeColumnSystem.Stop();
 
-        ReadCSV();
-        ConfigureParticleSystems();
+        ReadCSV();// Read data from CSV file
+        ConfigureParticleSystems();// Setup particle systems
 
 
-        //Add a listener to button 
+        //Add a listener to button to start simulation
         if (startSimulationbtn != null)
         {
            startSimulationbtn.onClick.AddListener(StartSimulation);
         }
     }
-
+    // Update is called once per frame
     void Update()
     {
         if (isSimulationRunning) {
         timeElapsed += Time.deltaTime;
-            // Assuming each row represents data for specific time
+
+            // Process the simulation frame if the interval is met and data remains
             if (timeElapsed >= updateInterval && currentTimeStep < timeData.Count)
-            {   /*
-                float progress = timeElapsed / updateInterval;
-                float hrr = Mathf.Lerp(hrrData[currentTimeStep], hrrData[currentTimeStep + 1], progress);
-                float qRad = Mathf.Lerp(qRads[currentTimeStep], qRads[currentTimeStep + 1], progress);
-                float qTotal = Mathf.Lerp(qTotals[currentTimeStep], qTotals[currentTimeStep + 1], progress);
-                float mlrAir = Mathf.Lerp(mlrAirs[currentTimeStep], mlrAirs[currentTimeStep + 1], progress);
-                float mlrProduct = Mathf.Lerp(mlrProducts[currentTimeStep], mlrProducts[currentTimeStep + 1], progress);
-                */
+            {
+                starttime = Time.time;
+                Debug.Log($"Data processing begins...{starttime}");
+                //Direct storing without scaling with interpolation 
                 float hrr = hrrData[currentTimeStep];
                 float qRad = qRads[currentTimeStep];
                 float qTotal = qTotals[currentTimeStep];
                 float mlrAir = mlrAirs[currentTimeStep];
                 float mlrProduct = mlrProducts[currentTimeStep];
-            
 
-                ApplyFire(hrr, qRad, qTotal);
+                ApplyFirSettings(hrr, qRad, qTotal);
+                
+                var whiteMain = whitesmokeParticle.main;
+                whiteMain.startSize = 4f;
+                var whiteEmission = whitesmokeParticle.emission;
+                whiteEmission.enabled = true;
+                whiteEmission.rateOverTime = (mlrAir + mlrProduct) * 10000f;
+                
                 ApplySmokeSettings(mlrAir, mlrProduct);
 
-                //if (timeElapsed >= updateInterval)
-                //{
+                //whitesmokeParticle.Stop();
+
+
+
                 currentTimeStep++;
                 timeElapsed = 0f; // Reset the timer
-                //}
+              
+               
+            }
+            
+
+            if (currentTimeStep >= timeData.Count)
+            {
+                stoptime = Time.time;
+                float duration = stoptime - starttime;
+                Debug.Log($"All data from file is processed once at time {stoptime}");
+                StopSimulation();
             }
         }
     }
-
-    void ApplyFire(float hrr, float qRad, float qTotal)
+    // Apply fire settings based on the simulation data
+    void ApplyFirSettings(float hrr, float qRad, float qTotal)
     {
         // Map HRR to emission rate
         var fireEmission = fireParticleSystem.emission;
-        fireEmission.rateOverTime = hrr * 10f;//Ajust multiplier as needed
+        fireEmission.rateOverTime = hrr * 100f;//Ajust multiplier as needed
 
         // Map Q_RADI to color and intensity
         var fireColorOverLifetime = fireParticleSystem.colorOverLifetime;
+        // Interpolate between yellow and red based on qRad
         fireColorOverLifetime.color = new ParticleSystem.MinMaxGradient(
             Color.Lerp(Color.yellow, Color.red, Mathf.Clamp01(qRad / 100f)));
 
         // Map Q_TOTAL to particle size and lifetime
         var fireMain = fireParticleSystem.main;
-        //reMain.startSize = (qTotal + 100f) / 10; // Adjust size mapping
-        fireMain.startSize = Mathf.Lerp(0.5f, 3f, Mathf.Clamp01(qTotal / 500f));
-        //firestartLifetime = (qTotal * 200f) / 20; // Adjust lifetime mapping
+
+        // not realistic:
+        //fireMain.startSize = (qTotal); // Adjust size mapping
+        //fireMain.startLifetime = (qTotal); // Adjust lifetime mapping
+
+        // Lerp and Clamp used here to adjust particle size and lifetime dynamically based on qTotal 
+        fireMain.startSize = Mathf.Lerp(0.5f, 3f, Mathf.Clamp01(qTotal / 500f)); //prefered to scale this way 
+        
         fireMain.startLifetime = Mathf.Lerp(1f, 4f, Mathf.Clamp01(qTotal / 500f));  // These ranges should be adjusted
         
         var fireSizeOverLifetime = fireParticleSystem.sizeOverLifetime;
@@ -106,19 +137,28 @@ public class FireController : MonoBehaviour
 
     void ApplySmokeSettings(float mlrAir, float mlrProduct)
     {
+        
+        float combinedMLR = mlrAir + mlrProduct;
         // Adjusting the smoke emission rate
         var smokeEmission = smokeParticleSystem.emission;
-        smokeEmission.rateOverTime = (mlrAir + mlrProduct) * 20f;  // Adjust this factor based on visual feedback
+        var smokeColumn = smokeColumnSystem.emission; smokeColumn.enabled = true;
+
+        smokeColumn.rateOverTime = combinedMLR * 2000f;
+        smokeEmission.rateOverTime = combinedMLR * 1000f;  // Adjust this factor based on visual feedback
 
         var smokeMain = smokeParticleSystem.main;
+        var smoke = smokeColumnSystem.main;
+        smoke.startSize = 3f; 
+        
         smokeMain.startSize = 2f; // Static starting size, consider making dynamic if needed
+        //smokeMain.startSize = Mathf.Lerp(1f, 5f, Mathf.Clamp01(combinedMLR / 50)); //smoother transition 
 
         // Adjusting size over lifetime for smoke based on MLR_PRODUCTS
         var smokeSizeOverLifetime = smokeParticleSystem.sizeOverLifetime;
         smokeSizeOverLifetime.enabled = true;
         smokeSizeOverLifetime.size = new ParticleSystem.MinMaxCurve(1.0f, new AnimationCurve(
             new Keyframe(0, 1), // Start at normal size
-            new Keyframe(1, Mathf.Clamp((mlrAir + mlrProduct) / 10, 1f, 3f)) // End size adjusted by MLR sum
+            new Keyframe(1, Mathf.Clamp((mlrAir + mlrProduct), 1f, 3f)) // End size adjusted by MLR sum
         ));
 
     }
@@ -172,11 +212,6 @@ public class FireController : MonoBehaviour
 
         Debug.Log("Done reading file 1");
 
-
-        foreach (var tm in timeData)
-        {
-            Debug.Log("Time value is:" + tm);
-        }
     }
 
     void ConfigureParticleSystems()
@@ -244,10 +279,32 @@ public class FireController : MonoBehaviour
 
     public void StartSimulation()
     {
+      
         isSimulationRunning = true;
         fireParticleSystem.Play();
         smokeParticleSystem.Play();
+        whitesmokeParticle.Play();
+        smokeColumnSystem.Play();
+    }
+
+    public void StopSimulation()
+    {   
+        isSimulationRunning = false;
+        fireParticleSystem.Stop();
+        smokeParticleSystem.Stop();
+        whitesmokeParticle.Stop();
+        smokeColumnSystem.Stop();
     }
 
 
+
+
 }
+/*
+Mathf.Lerp is used to simulate transitions between data points more smoothly.
+For instance, if data updates every second but you render frames at a higher frequency, 
+you might interpolate values for every frame.
+Mathf.Clamp ensures that despite the direct application of experimental data,
+the visual parameters (like color intensity or particle size) do not exceed realistic 
+or visually coherent limits in the simulation environment.
+ */
