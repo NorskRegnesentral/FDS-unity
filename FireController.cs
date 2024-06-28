@@ -1,8 +1,9 @@
 using System.Collections.Generic;
+using System.Collections;
 using System.Globalization;
 using System.IO;
 using UnityEngine;
-using UnityEngine.UIElements;
+using UnityEngine.UIElements;   
 
 public class FireController : MonoBehaviour
 {
@@ -24,7 +25,7 @@ public class FireController : MonoBehaviour
 
     private int currentTimeStep = 0;
     private float timeElapsed = 0f;
-    public float updateInterval = 0.5f; // Interval in seconds
+    public float updateInterval = 0.25f; // Interval in seconds
     private bool isSimulationRunning = false;
 
     private float loopDuration;
@@ -73,14 +74,24 @@ public class FireController : MonoBehaviour
                 float mlrProduct = mlrProducts[currentTimeStep];
 
                 ApplyFirSettings(hrr, qRad, qTotal);
+                StartWhiteSmoke(mlrAir, mlrProduct);
+
+
+                //start white smoke heat disspation immediately
+
+                //if (currentTimeStep == 0 || !whitesmokeParticle.isPlaying)
+                //{
+                //    StartWhiteSmoke(mlrAir, mlrProduct);
+
+                //}
+
+                if (currentTimeStep >= 3)
+                {
+                    StartCoroutine(TransitionToBlackSmoke(mlrAir, mlrProduct));
+                }
                 
-                var whiteMain = whitesmokeParticle.main;
-                whiteMain.startSize = 4f;
-                var whiteEmission = whitesmokeParticle.emission;
-                whiteEmission.enabled = true;
-                whiteEmission.rateOverTime = (mlrAir + mlrProduct) * 10000f;
-                
-                ApplySmokeSettings(mlrAir, mlrProduct);
+
+                //ApplySmokeSettings(mlrAir, mlrProduct);
 
                 //whitesmokeParticle.Stop();
 
@@ -92,7 +103,7 @@ public class FireController : MonoBehaviour
                
             }
             
-
+            /*
             if (currentTimeStep >= timeData.Count)
             {
                 stoptime = Time.time;
@@ -100,11 +111,36 @@ public class FireController : MonoBehaviour
                 Debug.Log($"All data from file is processed once at time {stoptime}");
                 StopSimulation();
             }
+            */
         }
+    }
+
+    void StartWhiteSmoke(float mlrAir, float mlrProduct)
+    {
+        var whiteMain = whitesmokeParticle.main;
+        whiteMain.startSize = 4f;
+        var whiteEmission = whitesmokeParticle.emission;
+        whiteEmission.enabled = true;
+        whiteEmission.rateOverTime = (mlrAir + mlrProduct) * 100000f;
+
+    }
+
+    IEnumerator TransitionToBlackSmoke(float mlrAir, float mlrProduct)
+    {
+        yield return new WaitForSeconds(3); //Delay before black smoke starts 
+
+        whitesmokeParticle.Stop();
+        Debug.Log("Transition to black smoke");
+        smokeParticleSystem.Play();
+        smokeColumnSystem.Play();
+        ApplySmokeSettings(mlrAir, mlrProduct);
+       
+
     }
     // Apply fire settings based on the simulation data
     void ApplyFirSettings(float hrr, float qRad, float qTotal)
     {
+        
         // Map HRR to emission rate
         var fireEmission = fireParticleSystem.emission;
         fireEmission.rateOverTime = hrr * 100f;//Ajust multiplier as needed
@@ -142,9 +178,11 @@ public class FireController : MonoBehaviour
         // Adjusting the smoke emission rate
         var smokeEmission = smokeParticleSystem.emission;
         var smokeColumn = smokeColumnSystem.emission; smokeColumn.enabled = true;
+        smokeColumn.rateOverTime = combinedMLR * 25000f;
 
-        smokeColumn.rateOverTime = combinedMLR * 2000f;
-        smokeEmission.rateOverTime = combinedMLR * 1000f;  // Adjust this factor based on visual feedback
+
+
+        smokeEmission.rateOverTime = combinedMLR * 10000f;  // Adjust this factor based on visual feedback
 
         var smokeMain = smokeParticleSystem.main;
         var smoke = smokeColumnSystem.main;
@@ -232,7 +270,7 @@ public class FireController : MonoBehaviour
 
         var fireColorOverLifetime = fireParticleSystem.colorOverLifetime;
         fireColorOverLifetime.enabled = true;
-        fireColorOverLifetime.color = new ParticleSystem.MinMaxGradient(Color.red, Color.yellow);
+        fireColorOverLifetime.color = new ParticleSystem.MinMaxGradient(Color.yellow, Color.red);
 
         var fireSizeOverLifetime = fireParticleSystem.sizeOverLifetime;
         fireSizeOverLifetime.enabled = true;
@@ -282,9 +320,9 @@ public class FireController : MonoBehaviour
       
         isSimulationRunning = true;
         fireParticleSystem.Play();
-        smokeParticleSystem.Play();
+        //smokeParticleSystem.Play();
         whitesmokeParticle.Play();
-        smokeColumnSystem.Play();
+        //smokeColumnSystem.Play();
     }
 
     public void StopSimulation()
