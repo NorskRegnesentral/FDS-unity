@@ -74,7 +74,8 @@ public class FireController : MonoBehaviour
                 float mlrProduct = mlrProducts[currentTimeStep];
 
                 ApplyFirSettings(hrr, qRad, qTotal);
-                StartWhiteSmoke(mlrAir, mlrProduct);
+                ApplySmokeSettings(mlrAir, mlrProduct);
+                //StartWhiteSmoke(mlrAir, mlrProduct);
 
 
                 //start white smoke heat disspation immediately
@@ -140,7 +141,6 @@ public class FireController : MonoBehaviour
     // Apply fire settings based on the simulation data
     void ApplyFirSettings(float hrr, float qRad, float qTotal)
     {
-        
         // Map HRR to emission rate
         var fireEmission = fireParticleSystem.emission;
         fireEmission.rateOverTime = hrr * 100f;//Ajust multiplier as needed
@@ -148,12 +148,25 @@ public class FireController : MonoBehaviour
         // Map Q_RADI to color and intensity
         var fireColorOverLifetime = fireParticleSystem.colorOverLifetime;
         // Interpolate between yellow and red based on qRad
-        fireColorOverLifetime.color = new ParticleSystem.MinMaxGradient(
-            Color.Lerp(Color.yellow, Color.red, Mathf.Clamp01(qRad / 100f)));
+        //fireColorOverLifetime.color = new ParticleSystem.MinMaxGradient(
+            //Color.Lerp(Color.red, Color.yellow, Mathf.Clamp01(qRad / 100f)));
 
         // Map Q_TOTAL to particle size and lifetime
         var fireMain = fireParticleSystem.main;
+        //fireMain.startColor = new ParticleSystem.MinMaxGradient(
+        //Color.Lerp(Color.red, Color.yellow, Mathf.Clamp01(qRad / 100f))); ;
 
+        float intensity = Mathf.Clamp01(qRad / 100f);
+
+        Color fireorange = new Color(255, 64, 0);
+        // Update the gradient based on new qRad value
+        Gradient grad = new Gradient();
+        grad.SetKeys(
+            new GradientColorKey[] { new GradientColorKey(Color.red, 0.0f), new GradientColorKey(Color.Lerp(fireorange, Color.red, intensity), 1.0f) },
+            new GradientAlphaKey[] { new GradientAlphaKey(1.0f, 0.0f), new GradientAlphaKey(0.0f, 1.0f) }
+        );
+
+        fireColorOverLifetime.color = new ParticleSystem.MinMaxGradient(grad);
         // not realistic:
         //fireMain.startSize = (qTotal); // Adjust size mapping
         //fireMain.startLifetime = (qTotal); // Adjust lifetime mapping
@@ -166,7 +179,7 @@ public class FireController : MonoBehaviour
         var fireSizeOverLifetime = fireParticleSystem.sizeOverLifetime;
         fireSizeOverLifetime.enabled = true;
         fireSizeOverLifetime.size = new ParticleSystem.MinMaxCurve(1.0f, new AnimationCurve(
-            new Keyframe(0, Mathf.Clamp(qTotal / 100, 0.5f, 1.5f)), // Start size adjusted by Q_TOTAL
+            new Keyframe(0, Mathf.Clamp(qTotal / 100f, 0.5f, 1.5f)), // Start size adjusted by Q_TOTAL
             new Keyframe(1, 0.1f)  // End size assumes reduction as fire dissipates
         ));
     }
@@ -258,7 +271,7 @@ public class FireController : MonoBehaviour
         var fireMain = fireParticleSystem.main;
         fireMain.startLifetime = 2f;
         fireMain.startSize = 1f;
-        fireMain.startColor = Color.red;
+        fireMain.startColor = Color.white;
 
         var fireEmission = fireParticleSystem.emission;
         fireEmission.enabled = true;
@@ -320,9 +333,9 @@ public class FireController : MonoBehaviour
       
         isSimulationRunning = true;
         fireParticleSystem.Play();
-        //smokeParticleSystem.Play();
-        whitesmokeParticle.Play();
-        //smokeColumnSystem.Play();
+        smokeParticleSystem.Play();
+        //whitesmokeParticle.Play();
+        smokeColumnSystem.Play();
     }
 
     public void StopSimulation()
