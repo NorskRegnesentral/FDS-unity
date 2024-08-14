@@ -3,7 +3,8 @@ using System.Collections;
 using System.Globalization;
 using System.IO;
 using UnityEngine;
-using UnityEngine.UIElements;   
+using UnityEngine.UIElements;
+using System.Linq;
 
 public class FireController : MonoBehaviour
 {
@@ -22,6 +23,7 @@ public class FireController : MonoBehaviour
     private List<float> qTotals = new List<float>();
     private List<float> mlrAirs = new List<float>();
     private List<float> mlrProducts = new List<float>();
+    private float maxqRad = 0;
 
     private int currentTimeStep = 0;
     private float timeElapsed = 0f;
@@ -86,10 +88,10 @@ public class FireController : MonoBehaviour
 
                 //}
 
-                if (currentTimeStep >= 3)
-                {
-                    StartCoroutine(TransitionToBlackSmoke(mlrAir, mlrProduct));
-                }
+                //if (currentTimeStep >= 3)
+                //{
+                //    StartCoroutine(TransitionToBlackSmoke(mlrAir, mlrProduct));
+                //}
                 
 
                 //ApplySmokeSettings(mlrAir, mlrProduct);
@@ -141,6 +143,7 @@ public class FireController : MonoBehaviour
     // Apply fire settings based on the simulation data
     void ApplyFirSettings(float hrr, float qRad, float qTotal)
     {
+        
         // Map HRR to emission rate
         var fireEmission = fireParticleSystem.emission;
         fireEmission.rateOverTime = hrr * 100f;//Ajust multiplier as needed
@@ -149,27 +152,25 @@ public class FireController : MonoBehaviour
         var fireColorOverLifetime = fireParticleSystem.colorOverLifetime;
         // Interpolate between yellow and red based on qRad
         //fireColorOverLifetime.color = new ParticleSystem.MinMaxGradient(
-            //Color.Lerp(Color.red, Color.yellow, Mathf.Clamp01(qRad / 100f)));
+          //  Color.Lerp(Color.red, Color.yellow, Mathf.Clamp01(qRad / 100f)));
 
         // Map Q_TOTAL to particle size and lifetime
         var fireMain = fireParticleSystem.main;
-        //fireMain.startColor = new ParticleSystem.MinMaxGradient(
-        //Color.Lerp(Color.red, Color.yellow, Mathf.Clamp01(qRad / 100f))); ;
 
-        float intensity = Mathf.Clamp01(qRad / 100f);
-
-        Color fireorange = new Color(255, 64, 0);
-        // Update the gradient based on new qRad value
-        Gradient grad = new Gradient();
-        grad.SetKeys(
-            new GradientColorKey[] { new GradientColorKey(Color.red, 0.0f), new GradientColorKey(Color.Lerp(fireorange, Color.red, intensity), 1.0f) },
-            new GradientAlphaKey[] { new GradientAlphaKey(1.0f, 0.0f), new GradientAlphaKey(0.0f, 1.0f) }
-        );
-
-        fireColorOverLifetime.color = new ParticleSystem.MinMaxGradient(grad);
         // not realistic:
         //fireMain.startSize = (qTotal); // Adjust size mapping
         //fireMain.startLifetime = (qTotal); // Adjust lifetime mapping
+
+        float intensity = Mathf.Clamp01(qRad / maxqRad);
+
+        Color fireorange = new Color(255f/255f, 64f/255f, 0f/255f);
+        //// Update the gradient based on new qRad value
+        Gradient grad = new Gradient();
+        grad.SetKeys(
+            new GradientColorKey[] { new GradientColorKey(fireorange, intensity), new GradientColorKey(Color.red, intensity) },
+            new GradientAlphaKey[] { new GradientAlphaKey(1.0f, 0.0f), new GradientAlphaKey(1.0f, intensity) });
+
+        fireColorOverLifetime.color = new ParticleSystem.MinMaxGradient(grad);
 
         // Lerp and Clamp used here to adjust particle size and lifetime dynamically based on qTotal 
         fireMain.startSize = Mathf.Lerp(0.5f, 3f, Mathf.Clamp01(qTotal / 500f)); //prefered to scale this way 
@@ -179,7 +180,7 @@ public class FireController : MonoBehaviour
         var fireSizeOverLifetime = fireParticleSystem.sizeOverLifetime;
         fireSizeOverLifetime.enabled = true;
         fireSizeOverLifetime.size = new ParticleSystem.MinMaxCurve(1.0f, new AnimationCurve(
-            new Keyframe(0, Mathf.Clamp(qTotal / 100f, 0.5f, 1.5f)), // Start size adjusted by Q_TOTAL
+            new Keyframe(0, Mathf.Clamp(qTotal / 100, 0.5f, 1.5f)), // Start size adjusted by Q_TOTAL
             new Keyframe(1, 0.1f)  // End size assumes reduction as fire dissipates
         ));
     }
@@ -263,6 +264,8 @@ public class FireController : MonoBehaviour
 
         Debug.Log("Done reading file 1");
 
+        maxqRad = qRads.Max() ; 
+
     }
 
     void ConfigureParticleSystems()
@@ -281,9 +284,9 @@ public class FireController : MonoBehaviour
         fireShape.enabled = true;
         fireShape.shapeType = ParticleSystemShapeType.Hemisphere;
 
-        var fireColorOverLifetime = fireParticleSystem.colorOverLifetime;
-        fireColorOverLifetime.enabled = true;
-        fireColorOverLifetime.color = new ParticleSystem.MinMaxGradient(Color.yellow, Color.red);
+        //var fireColorOverLifetime = fireParticleSystem.colorOverLifetime;
+        //fireColorOverLifetime.enabled = true;
+        //fireColorOverLifetime.color = new ParticleSystem.MinMaxGradient(Color.yellow, Color.red);
 
         var fireSizeOverLifetime = fireParticleSystem.sizeOverLifetime;
         fireSizeOverLifetime.enabled = true;
