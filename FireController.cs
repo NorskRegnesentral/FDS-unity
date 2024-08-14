@@ -30,14 +30,15 @@ public class FireController : MonoBehaviour
     public float updateInterval = 0.25f; // Interval in seconds
     private bool isSimulationRunning = false;
 
-    private float loopDuration;
-    private float loopTimer;
-    private bool isLooping;
+    //private float loopDuration;
+    //private float loopTimer;
+    //private bool isLooping;
     private float starttime;
     private float stoptime;
 
-    private List<ParticleSystem> fireParticleSytems = new List<ParticleSystem>();
-    private List<ParticleSystem> smokeParticleSystems = new List<ParticleSystem>();
+    // Store prefabs and other particles 
+    //private List<ParticleSystem> fireParticleSytems = new List<ParticleSystem>();
+    //private List<ParticleSystem> smokeParticleSystems = new List<ParticleSystem>();
     
     // Start is called before the first frame update
     void Start()
