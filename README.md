@@ -31,12 +31,28 @@ Mention any dependencies or required components for the script to function corre
 ## 2. HelloWorld.cs
 
 **Description**: 
+This is a simple script to become familar with Unity. It contains the functionalities for a simple button which upon clicking prints hello work to the console. 
 
 **Usage**: 
 
-**Parameters**: 
+1. Open Unity Hub and Create a New Project
+2. Open Unity Hub and Click on "New Project."
+3. Choose a template suitable for VR/AR development. For VR, you can select the "3D" template. (optional for this guide) Name your project and click "Create."
+4. Once the project is created, the Unity Editor will open.
+5. In the hierarchy window: Right click → UI→ canvas
+   - Right click on Canvas → UI → Button
+   - Resize the button according to preference using the toolbar
+6. From the drop down menu of Button click on Text (Note: There will be a pop up, asking to import TMP, Import both)
+7. In the inspector view, navigate to text and change “button” to for example “play”.
+8. Navigate to Assets folder, create a folder there (Right click → create → folder), Name this folder Scripts. This is where all your C# scripts are saved.
+    - In this folder: Right click → create → C# script and name it HelloWorldButton.cs
+    - Double click on the script and it will open up in an editor
+9. In the script copy the code from HelloWordButton.cs and save. 
+10. Under hierarchy view, right click → Create Empty and name this object Controller.
+11. Assign the script to this object by clicking on the object and under inspector view click on Add component and find the script from the drop down menu. Or drag the script and drop there. 
+12. In the "Hierarchy" window, select the "Controller." In the "Inspector" window, you will see the HelloWorldButton script component with a field for My Button. Drag the Button object from the "Hierarchy" into the My Button field in the Inspector.
+13. Save and Run the simulation by pressing play. Upon clicking the button, hello world should appear in the console window. 
 
-**Dependencies**: 
 
 
 
