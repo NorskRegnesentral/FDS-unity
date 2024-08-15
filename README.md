@@ -5,7 +5,7 @@ This repository contains two scripts:
 ## 1. FireController.cs
 
 **Description**:   
-The `FireController.cs` script handles the behavior and simulation of fire within the Unity environment. It controls the ignition, spread, colour, size based on four parameters. This script parses through the CSV file *_hrr.csv and modifies Unity's fire assets based on that. The concept of parsing the CSV file was inspired by this [video](https://www.youtube.com/watch?app=desktop&v=xwnL4meq-j8) and the application of these ideas to Unity was influenced by this [article]()
+The `FireController.cs` script handles the behavior and simulation of fire within the Unity environment. It controls the ignition, spread, colour, size based on four parameters. This script parses through the CSV file *_hrr.csv and modifies Unity's fire assets based on that. The concept of parsing the CSV file was inspired by this [video](https://www.youtube.com/watch?app=desktop&v=xwnL4meq-j8) and the application of these ideas to Unity was influenced by this [Designing and Developing a VR Environment for Indoor Fire Simulation](https://www.researchgate.net/publication/349828252_Designing_and_Developing_a_VR_Environment_for_Indoor_Fire_Simulation)
 
 **Usage**:  
 (Assuming the scene is set, fire assests or particle system is imported along with a button)
